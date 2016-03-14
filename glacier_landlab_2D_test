@@ -7,10 +7,13 @@ Created on Mon Mar 14 21:47:15 2016
 
 ############################################################
 # glacier flow
-# Hang Deng 
+# written by Hang Deng 
 # 2D
 # use landlab module
 ############################################################
+from landlab.components.diffusion import LinearDiffuser
+from landlab import ModelParameterDictionary
+from landlab.plot.imshow import imshow_node_grid
 from landlab import RasterModelGrid
 import numpy as np
 import pylab as plt
@@ -78,10 +81,5 @@ for i in range(2):
     # Update ice-surface elevation
     z_ice[:] = z + H
     
-    if current_time % t_plot==0:
-        plot (x, z_ice[:])
-        plt.xlabel('distance (m)')
-        plot.ylabel('distance (m)')        
-        plot.pause(0.01)
-    else:
-        pass
+    pylab.figure(1)
+    im = imshow_node_grid(mg, 'ice_elevation', grid_units = ['m','m'])
