@@ -1,0 +1,87 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar 14 21:47:15 2016
+
+@author: Hang Deng
+"""
+
+############################################################
+# glacier flow
+# written by Hang Deng 
+# 2D
+# use landlab module
+############################################################
+from landlab import RasterModelGrid
+import numpy as np
+import pylab as plt
+
+# Parameters
+gamma = 0.01  # net accumulation gradient
+# mass balance coefficient, 1/yr
+rhoi = 917.0 # ice density
+rhow = 1000.0 # water density
+g = 9.8 # gravity
+ELA = 2500.0  # equilibrium-line altitude, m
+max_elev = 2550.0  # maximum elevation of valley floor, m
+dx = 1000.0    # node spacing, m
+xmax = 30000 # meters
+dt = 1.0       # time step, yr
+tmax = 10000; # years
+t_plot = 100.0 # years
+valley_slope = 0.02
+side_slope = 0.2
+num_rows = 5
+num_cols = 7
+
+# Create grid
+mg = RasterModelGrid(num_rows, num_cols, dx)
+
+# Create data fields
+z = mg.add_empty('node', 'elevation')
+H = mg.add_zeros('node', 'ice_thickness')
+z_ice = mg.add_empty('node', 'ice_elevation')
+dZicedx = mg.add_zeros('link', 'ice_surface_slope')
+
+# Initialize elevation ("open book" shape)
+# (Note: using "z[:] =" instead of "z =" means you are using the same block of
+# memory instead of making a new copy)
+z[:] = max_elev - mg.node_x * valley_slope
+z +=  side_slope * np.abs(mg.node_y - mg.dx * ((num_rows - 1) / 2.0))
+
+z_ice[:] = z + H
+
+for i in range(2):
+
+    # Specific accumulation / melt
+    b = gamma * (z_ice - ELA)
+    
+    # Ice-surface slope
+    dZicedx[mg.active_links] = mg.calculate_gradients_at_active_links(z_ice)
+    
+    # Thickness at links
+    H_edge = mg.map_mean_of_link_nodes_to_link('ice_thickness')
+    
+    # Calculate ice flux here...
+    Q = (2.0*gamma/5.0)*((rhoi*g*(dZicedx))^3)*(H_edge^5)    
+    # calculate flux        
+    dQdx = mg.calculate_flux_divergence_at_nodes(Q)
+    
+    # Calculate dHdt and H here...
+    dHdt = b - dQdx
+    # temporary, just for testing (ignore flow, just do mass balance)
+    #H[mg.core_nodes] += np.maximum(b[mg.core_nodes] * dt, -H[mg.core_nodes])
+    # update H    
+    H[:] = H + (dHdt*dt)
+    print(H)
+    print(H_edge)
+    
+    # Update ice-surface elevation
+    z_ice[:] = z + H
+    
+    if current_time % t_plot==0:
+        plot (x, z_ice[:])
+        plt.xlabel('distance (m)')
+        plot.ylabel('distance (m)')        
+        plot.pause(0.01)
+    else:
+        pass
